@@ -1,13 +1,13 @@
 //! Spin up a HTTPServer
 
-use crate::auth::get_identity_service;
+// use crate::auth::get_identity_service;
 use crate::cache::add_cache;
 use crate::config::CONFIG;
 use crate::database::add_pool;
 use crate::routes::routes;
 use crate::state::new_state;
 use actix_cors::Cors;
-use actix_web::{middleware::Logger, App, HttpServer};
+use actix_web::{middleware::Logger, App, HttpServer, http::header};
 use listenfd::ListenFd;
 
 pub async fn server() -> std::io::Result<()> {
@@ -23,9 +23,18 @@ pub async fn server() -> std::io::Result<()> {
     let mut server = HttpServer::new(move || {
         App::new()
             .configure(add_cache)
-            .wrap(Cors::new().supports_credentials().finish())
+            .wrap(
+                Cors::default()
+                .allowed_origin(&format!("http://{}", &CONFIG.server))
+                .allowed_methods(vec!["GET", "POST"])
+                .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+                .allowed_header(header::CONTENT_TYPE)
+                .supports_credentials()
+                .max_age(3600),
+                // Cors::new().supports_credentials().finish()
+            )
             .wrap(Logger::default())
-            .wrap(get_identity_service())
+            // .wrap(get_identity_service())
             .configure(add_pool)
             .app_data(data.clone())
             .configure(routes)

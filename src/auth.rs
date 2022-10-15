@@ -1,6 +1,6 @@
 use crate::config::CONFIG;
 use crate::errors::ApiError;
-use actix_identity::{CookieIdentityPolicy, IdentityService};
+use actix_identity::{IdentityMiddleware};
 use argon2rs::argon2i_simple;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
@@ -24,7 +24,7 @@ impl PrivateClaim {
 }
 
 /// Create a json web token (JWT)
-pub fn create_jwt(private_claim: PrivateClaim) -> Result<String, ApiError> {
+pub fn encode_jwt(private_claim: PrivateClaim) -> Result<String, ApiError> {
     let encoding_key = EncodingKey::from_secret(&CONFIG.jwt_key.as_ref());
     encode(
         &Header::default(),
@@ -53,15 +53,6 @@ pub fn hash(password: &str) -> String {
         .collect()
 }
 
-/// Gets the identidy service for injection into an Actix app
-pub fn get_identity_service() -> IdentityService<CookieIdentityPolicy> {
-    IdentityService::new(
-        CookieIdentityPolicy::new(&CONFIG.session_key.as_ref())
-            .name(&CONFIG.session_name)
-            .max_age_time(chrono::Duration::minutes(CONFIG.session_timeout))
-            .secure(CONFIG.session_secure),
-    )
-}
 
 #[cfg(test)]
 pub mod tests {
@@ -86,14 +77,14 @@ pub mod tests {
     #[test]
     fn it_creates_a_jwt() {
         let private_claim = PrivateClaim::new(Uuid::new_v4(), EMAIL.into());
-        let jwt = create_jwt(private_claim);
+        let jwt = encode_jwt(private_claim);
         assert!(jwt.is_ok());
     }
 
     #[test]
     fn it_decodes_a_jwt() {
         let private_claim = PrivateClaim::new(Uuid::new_v4(), EMAIL.into());
-        let jwt = create_jwt(private_claim.clone()).unwrap();
+        let jwt = encode_jwt(private_claim.clone()).unwrap();
         let decoded = decode_jwt(&jwt).unwrap();
         assert_eq!(private_claim, decoded);
     }

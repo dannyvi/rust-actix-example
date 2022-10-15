@@ -1,13 +1,15 @@
-table! {
+// @generated automatically by Diesel CLI.
+
+diesel::table! {
     users (id) {
-        id -> Varchar,
-        first_name -> Varchar,
-        last_name -> Varchar,
-        email -> Varchar,
-        password -> Varchar,
-        created_by -> Varchar,
+        id -> Text,
+        first_name -> Text,
+        last_name -> Text,
+        email -> Text,
+        password -> Text,
+        created_by -> Text,
         created_at -> Timestamp,
-        updated_by -> Varchar,
+        updated_by -> Text,
         updated_at -> Timestamp,
     }
 }

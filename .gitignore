@@ -1,3 +1,8 @@
 /target
 .env
 .cargo
+.idea
+.vscode
+*.sqlite3
+*.db
+.history

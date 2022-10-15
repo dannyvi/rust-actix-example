@@ -23,10 +23,10 @@ pub struct Config {
     pub rust_backtrace: u8,
     pub rust_log: String,
     pub server: String,
-    pub session_key: String,
-    pub session_name: String,
-    pub session_secure: bool,
-    pub session_timeout: i64,
+    // pub session_key: String,
+    // pub session_name: String,
+    // pub session_secure: bool,
+    // pub session_timeout: i64,
 }
 
 // Throw the Config struct into a CONFIG lazy_static to avoid multiple processing

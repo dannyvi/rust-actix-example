@@ -8,7 +8,7 @@ use diesel::{
     r2d2::PoolError,
     result::{DatabaseErrorKind, Error as DBError},
 };
-use uuid::parser::ParseError;
+// use uuid::parser::ParseError;
 
 #[derive(Debug, Display, PartialEq)]
 #[allow(dead_code)]
@@ -37,21 +37,20 @@ pub struct ErrorResponse {
 impl ResponseError for ApiError {
     fn error_response(&self) -> HttpResponse {
         match self {
-            ApiError::BadRequest(error) => {
-                HttpResponse::BadRequest().json::<ErrorResponse>(error.into())
-            }
-            ApiError::NotFound(message) => {
-                HttpResponse::NotFound().json::<ErrorResponse>(message.into())
-            }
+            ApiError::BadRequest(error) => HttpResponse::BadRequest().json(ErrorResponse::from(error)),
+            ApiError::NotFound(message) => HttpResponse::NotFound().json(ErrorResponse::from(message)),
             ApiError::ValidationError(errors) => {
-                HttpResponse::UnprocessableEntity().json::<ErrorResponse>(errors.to_vec().into())
+                HttpResponse::UnprocessableEntity().json(ErrorResponse::from(errors.to_vec()))
             }
-            ApiError::Unauthorized(error) => {
-                HttpResponse::Unauthorized().json::<ErrorResponse>(error.into())
-            }
+            ApiError::Unauthorized(error) => HttpResponse::Unauthorized().json(ErrorResponse::from(error)),
             _ => HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR),
         }
     }
+
+    fn status_code(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+
 }
 
 /// Utility to make transforming a string reference into an ErrorResponse
@@ -95,19 +94,19 @@ impl From<PoolError> for ApiError {
     }
 }
 
-/// Convert ParseErrors to ApiErrors
-impl From<ParseError> for ApiError {
-    fn from(error: ParseError) -> ApiError {
-        ApiError::ParseError(error.to_string())
-    }
-}
+// /// Convert ParseErrors to ApiErrors
+// impl From<ParseError> for ApiError {
+//     fn from(error: ParseError) -> ApiError {
+//         ApiError::ParseError(error.to_string())
+//     }
+// }
 
 /// Convert Thread BlockingErrors to ApiErrors
-impl From<BlockingError<ApiError>> for ApiError {
-    fn from(error: BlockingError<ApiError>) -> ApiError {
-        match error {
-            BlockingError::Error(api_error) => api_error,
-            BlockingError::Canceled => ApiError::BlockingError("Thread blocking error".into()),
-        }
+impl From<BlockingError> for ApiError {
+    fn from(error: BlockingError) -> ApiError {
+        // match error {
+        // BlockingError::Error(api_error) => api_error,
+        ApiError::BlockingError("Thread blocking error".into())
+        // }
     }
 }

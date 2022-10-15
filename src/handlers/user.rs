@@ -3,7 +3,7 @@ use crate::errors::ApiError;
 use crate::helpers::{respond_json, respond_ok};
 use crate::models::user::{create, delete, find, get_all, update, NewUser, UpdateUser, User};
 use crate::validate::validate;
-use actix_web::web::{block, Data, HttpResponse, Json, Path};
+use actix_web::{HttpResponse, web::{block, Data,Json, Path}};
 use rayon::prelude::*;
 use serde::Serialize;
 use uuid::Uuid;
@@ -67,13 +67,14 @@ pub async fn get_user(
     user_id: Path<Uuid>,
     pool: Data<PoolType>,
 ) -> Result<Json<UserResponse>, ApiError> {
-    let user = block(move || find(&pool, *user_id)).await?;
+    println!("get user");
+    let user = block(move || find(&pool, *user_id)).await?.expect("Failed");
     respond_json(user)
 }
 
 /// Get all users
 pub async fn get_users(pool: Data<PoolType>) -> Result<Json<UsersResponse>, ApiError> {
-    let users = block(move || get_all(&pool)).await?;
+    let users = block(move || get_all(&pool)).await?.expect("Failed");
     respond_json(users)
 }
 
@@ -97,7 +98,7 @@ pub async fn create_user(
         updated_by: user_id.to_string(),
     }
     .into();
-    let user = block(move || create(&pool, &new_user)).await?;
+    let user = block(move || create(&pool, &new_user)).await?.expect("Failed");
     respond_json(user.into())
 }
 
@@ -118,7 +119,7 @@ pub async fn update_user(
         email: params.email.to_string(),
         updated_by: user_id.to_string(),
     };
-    let user = block(move || update(&pool, &update_user)).await?;
+    let user = block(move || update(&pool, &update_user)).await?.expect("Failed");
     respond_json(user.into())
 }
 

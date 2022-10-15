@@ -85,7 +85,7 @@ pub fn find_by_auth(
         .filter(email.eq(user_email.to_string()))
         .filter(password.eq(user_password.to_string()))
         .first::<User>(&conn)
-        .map_err(|_| ApiError::Unauthorized("Invalid login".into()))?;
+        .map_err(|_| ApiError::Unauthorized("User with the password does not exist".into()))?;
     Ok(user.into())
 }
 
@@ -107,7 +107,7 @@ pub fn update(pool: &PoolType, update_user: &UpdateUser) -> Result<UserResponse,
         .filter(id.eq(update_user.id.clone()))
         .set(update_user)
         .execute(&conn)?;
-    find(&pool, Uuid::parse_str(&update_user.id)?)
+    find(&pool, Uuid::parse_str(&update_user.id).map_err(|e| ApiError::ParseError("".to_string()))?)
 }
 
 /// Delete a user

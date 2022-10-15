@@ -1,13 +1,13 @@
-use crate::auth::{create_jwt, hash, PrivateClaim};
+use crate::auth::{encode_jwt, hash, PrivateClaim};
 use crate::database::PoolType;
 use crate::errors::ApiError;
-use crate::handlers::user::UserResponse;
+use crate::handlers::user::{UserResponse, self};
 use crate::helpers::{respond_json, respond_ok};
 use crate::models::user::find_by_auth;
 use crate::validate::validate;
 use actix_identity::Identity;
-use actix_web::web::{block, Data, HttpResponse, Json};
-use serde::Serialize;
+use actix_web::{ HttpResponse, web::{block, Data, Json}};
+use serde::{Serialize, Deserialize};
 use validator::Validate;
 
 #[derive(Clone, Debug, Deserialize, Serialize, Validate)]
@@ -22,32 +22,48 @@ pub struct LoginRequest {
     pub password: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LoginResponse {
+    access_token: String,
+}
+
+impl LoginResponse {
+    pub fn new(token: String) -> Self {
+        Self { access_token: token}
+    }
+}
+
 /// Login a user
 /// Create and remember their JWT
 pub async fn login(
-    id: Identity,
+    // id: Identity,
     pool: Data<PoolType>,
     params: Json<LoginRequest>,
-) -> Result<Json<UserResponse>, ApiError> {
+) -> Result<Json<LoginResponse>, ApiError> {
     validate(&params)?;
 
     // Validate that the email + hashed password matches
     let hashed = hash(&params.password);
-    let user = block(move || find_by_auth(&pool, &params.email, &hashed)).await?;
+    let user_resp = block(move || find_by_auth(&pool, &params.email, &hashed)).await?;
 
-    // Create a JWT
+    let user = match user_resp {
+        Ok(user) => user,
+        Err(e) => return Err(e),
+    };
+
     let private_claim = PrivateClaim::new(user.id, user.email.clone());
-    let jwt = create_jwt(private_claim)?;
+    let jwt = encode_jwt(private_claim)?;
 
-    // Remember the token
-    id.remember(jwt);
-    respond_json(user.into())
+    respond_json(LoginResponse::new(jwt))
 }
 
 /// Logout a user
 /// Forget their user_id
-pub async fn logout(id: Identity) -> Result<HttpResponse, ApiError> {
-    id.forget();
+pub async fn logout() -> Result<HttpResponse, ApiError> {
+    println!("------");
+    // println!("{:?}", id.id());
+    // id.forget();
+    // id.logout();
     respond_ok()
 }
 
